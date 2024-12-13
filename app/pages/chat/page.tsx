@@ -32,9 +32,7 @@ export default function Chat() {
   const recognitionRef = useRef<any>(null);
   const {data: session} = useSession();
   const username = session?.user?.name;
-  const [messages, setMessages] = useState<Message[]>([
-  { id: '1', content: `Hello ${username?.split(" ")[0]}! How can I help you today?`, isBot: true }
-]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [voiceMode, setVoiceMode] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
@@ -42,7 +40,20 @@ export default function Chat() {
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    console.log("Session data:", session?.user.id);
+    if (session?.user?.name) {
+      setMessages([
+        { 
+          id: '1', 
+          content: `Hello ${session.user.name.split(" ")[0]}! How can I help you today?`, 
+          isBot: true 
+        }
+      ]);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    console.log("Session user id:", session?.user.id);
+    console.log("Session user name:", session?.user.name);
 }, [session]);
 
   const cleanupVoiceRecognition = () => {
