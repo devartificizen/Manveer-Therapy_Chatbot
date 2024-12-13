@@ -6,7 +6,6 @@ interface VoiceChatProps {
   isSpeaking: boolean;
   onToggleRecording: () => void;
   onStop: () => void;
-  onStopSpeaking: () => void;
   onClose: () => void;
 }
 

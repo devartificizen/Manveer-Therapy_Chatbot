@@ -8,11 +8,10 @@ interface VoiceWaveProps {
     isSpeaking: boolean;
     onToggleRecording: () => void;
     onStop: () => void;
-    onStopSpeaking: () => void;
     onClose: () => void;
 }
 
-const VoiceWaveAnimation = ({ isRecording, isSpeaking, onToggleRecording, onStop, onStopSpeaking, onClose }: VoiceWaveProps) => {
+const VoiceWaveAnimation = ({ isRecording, isSpeaking, onToggleRecording, onStop, onClose }: VoiceWaveProps) => {
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -55,38 +54,18 @@ const VoiceWaveAnimation = ({ isRecording, isSpeaking, onToggleRecording, onStop
                     </motion.div>
                 </div>
                 <div className="relative inset-0 flex gap-4 mt-4 items-center justify-center">
-                    {/* Stop speaking button */}
                     <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={onStopSpeaking}
-                        className="bg-gray-600 w-auto text-white px-4 py-2 rounded-lg font-semibold shadow-lg"
+                        onClick={onStop}
+                        className="bg-red-500 rounded-full flex items-center justify-center shadow-lg"
                     >
-                        Interrupt
+                        <IoStopCircleOutline size={40} className="text-white" />
                     </motion.button>
-                    {isRecording ? (
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={onStop}
-                            className="bg-red-500 rounded-full flex items-center justify-center shadow-lg"
-                        >
-                            <IoStopCircleOutline size={40} className="text-white" />
-                        </motion.button>
-                    ) : (
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={onToggleRecording}
-                            className="bg-blue-400 rounded-full flex items-center justify-center shadow-lg"
-                        >
-                            <IoMicOutline size={40} className="text-white" />
-                        </motion.button>
-                    )}
                 </div>
                 {/* Status text */}
                 <div className="text-gray-800 font-medium text-lg mt-4">
-                    {isRecording ? "Listening..." : `Tap to speak ${<IoMicOutline size={8}/>}`}
+                    {isRecording ? "Listening..." : "Voice chat active"}
                 </div>
                 {/* Close button */}
                 <motion.button
