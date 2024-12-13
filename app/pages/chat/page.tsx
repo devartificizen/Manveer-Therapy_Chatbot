@@ -38,77 +38,185 @@ export default function Chat() {
   const [voiceMode, setVoiceMode] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showVoiceChat, setShowVoiceChat] = useState(false);
+  const [isUserSpeaking, setIsUserSpeaking] = useState(false);
+  const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     console.log("Session data:", session?.user.id);
 }, [session]);
 
+  const cleanupVoiceRecognition = () => {
+    if (recognitionRef.current) {
+      // Remove all event listeners
+      recognitionRef.current.onaudiostart = null;
+      recognitionRef.current.onaudioend = null;
+      recognitionRef.current.onresult = null;
+      recognitionRef.current.onend = null;
+      
+      // Stop and abort recognition
+      try {
+        recognitionRef.current.abort();
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping recognition:', error);
+      }
+      recognitionRef.current = null;
+    }
+    
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    // Clear timeouts
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+      speechTimeoutRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (showVoiceChat && typeof window !== 'undefined') {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
+        recognitionRef.current.continuous = true; // Keep listening
+        recognitionRef.current.interimResults = true; // Get real-time results
         recognitionRef.current.lang = 'en-US';
-        recognitionRef.current.onresult = async (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setUserInput(transcript);
-          
-          // Automatically submit the voice input
-          const userMessageId = Date.now().toString();
-          setMessages(prev => [...prev, { 
-            id: userMessageId, 
-            content: transcript, 
-            isBot: false 
-          }]);
 
-          setIsTyping(true);
-          try {
-            const response = await axios.post("/api/therapy-chat", {
-              input: transcript,
-              user_id: session?.user.id || "anonymous"
-            });
-            
-            const botMessage = response.data.response;
-            const botMessageId = (Date.now() + 1).toString();
-            setMessages(prev => [...prev, { 
-              id: botMessageId, 
-              content: botMessage, 
-              isBot: true 
-            }]);
-            
-            if (voiceMode) {
-              speakText(botMessage);
+        let finalTranscript = '';
+        let isProcessing = false;
+
+        recognitionRef.current.onaudiostart = () => {
+          setIsUserSpeaking(true);
+          // Pause bot's speech when user starts speaking
+          if (isSpeaking) {
+            window.speechSynthesis.pause();
+          }
+        };
+
+        recognitionRef.current.onaudioend = () => {
+          // Clear any existing timeout
+          if (speechTimeoutRef.current) {
+            clearTimeout(speechTimeoutRef.current);
+          }
+          // Set a small delay before marking user as done speaking
+          speechTimeoutRef.current = setTimeout(() => {
+            setIsUserSpeaking(false);
+            // Resume bot's speech if it was interrupted
+            if (isSpeaking) {
+              window.speechSynthesis.resume();
             }
+          }, 1000);
+        };
+
+        recognitionRef.current.onresult = async (event: any) => {
+          let interimTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript = transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+
+          // If we detect substantial user speech, cancel current bot speech
+          if (interimTranscript.length > 5) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+          }
+
+          // Only process final results and avoid duplicate processing
+          if (finalTranscript && !isProcessing) {
+            isProcessing = true;
             
-            setUserInput("");
-            setIsTyping(false);
-          } catch (error) {
-            console.error("Error:", error);
+            setUserInput(finalTranscript);
             setMessages(prev => [...prev, { 
               id: Date.now().toString(), 
-              content: "Sorry, I encountered an error. Please try again.", 
-              isBot: true 
+              content: finalTranscript, 
+              isBot: false 
             }]);
-            setIsTyping(false);
+
+            setIsTyping(true);
+            try {
+              const response = await axios.post("/api/therapy-chat", {
+                input: finalTranscript,
+                user_id: session?.user.id || "anonymous"
+              });
+              
+              const botMessage = response.data.response;
+              setMessages(prev => [...prev, { 
+                id: Date.now().toString(), 
+                content: botMessage, 
+                isBot: true 
+              }]);
+              
+              if (voiceMode) {
+                speakText(botMessage);
+              }
+            } catch (error) {
+              console.error("Error:", error);
+            } finally {
+              setIsTyping(false);
+              setUserInput("");
+              finalTranscript = '';
+              isProcessing = false;
+            }
           }
         };
 
         recognitionRef.current.onend = () => {
-          setIsRecording(false);
+          // Always restart recognition in voice mode
+          if (showVoiceChat) {
+            recognitionRef.current.start();
+          }
         };
+
+        recognitionRef.current.start();
+        setIsRecording(true);
       }
     }
 
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      window.speechSynthesis.cancel(); // Cancel any ongoing speech
+      cleanupVoiceRecognition();
+      setIsRecording(false);
+      setIsSpeaking(false);
+      setIsUserSpeaking(false);
     };
-  }, [showVoiceChat]); // Add showVoiceChat as dependency
+  }, [showVoiceChat]);
+
+  const speakText = (text: string) => {
+    if (!voiceMode || isUserSpeaking) return;
+    
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-UK';
+    utterance.rate = 1.85;
+    utterance.pitch = 1.55;
+    
+    const voices = window.speechSynthesis.getVoices();
+    utterance.voice = voices.find(voice => voice.lang === 'en-UK') || voices[0];
+    
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      // Don't stop recognition while speaking
+    };
+    
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+
+    utterance.onpause = () => {
+      setIsSpeaking(true); // Keep speaking state true while paused
+    };
+    
+    utterance.onresume = () => {
+      setIsSpeaking(true);
+    };
+    
+    window.speechSynthesis.speak(utterance);
+  };
 
   const toggleRecording = () => {
     if (!recognitionRef.current) {
@@ -131,53 +239,15 @@ export default function Chat() {
     }
   };
 
-  const handleStopSpeaking = () => {
-    window.speechSynthesis.cancel();
-    if (!isRecording) {
-      toggleRecording();
-    }
-  };
-
   const handleCloseVoiceChat = () => {
+    cleanupVoiceRecognition();
+    
+    // Reset all states
     setShowVoiceChat(false);
+    setVoiceMode(false);
     setIsRecording(false);
-    setVoiceMode(false); // Ensure voice mode is turned off
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    window.speechSynthesis.cancel();
-  };
-
-  // Update speakText to handle speech completion better
-  const speakText = (text: string) => {
-    if (!voiceMode) return;
-    
-    window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-UK';
-    utterance.rate = 1.85;
-    utterance.pitch = 1.55;
-    
-    // Set the voice directly
-    const voices = window.speechSynthesis.getVoices();
-    utterance.voice = voices.find(voice => voice.lang === 'en-UK') || voices[0];
-    
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-    };
-    
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      // Automatically start listening after bot finishes speaking
-      if (voiceMode && !isRecording) {
-        setTimeout(() => {
-          toggleRecording();
-        }, 1000);
-      }
-    };
-    
-    window.speechSynthesis.speak(utterance);
+    setIsSpeaking(false);
+    setIsUserSpeaking(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -220,19 +290,20 @@ export default function Chat() {
   };
 
   const handleStopVoiceChat = () => {
+    cleanupVoiceRecognition();
+    
+    // Reset all states
     setShowVoiceChat(false);
+    setVoiceMode(false);
     setIsRecording(false);
-    setVoiceMode(false); // Ensure voice mode is turned off
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
+    setIsSpeaking(false);
+    setIsUserSpeaking(false);
   };
 
   const handleVoiceModeToggle = () => {
-    setShowVoiceChat(true);
-    setVoiceMode(true); // Ensure voice mode is turned on
+    setShowVoiceChat(prev => !prev);
+    setVoiceMode(prev => !prev);
   };
-
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col relative w-full">
@@ -265,7 +336,6 @@ export default function Chat() {
               isSpeaking={isSpeaking}
               onToggleRecording={toggleRecording}
               onStop={handleStopVoiceChat}
-              onStopSpeaking={handleStopSpeaking}
               onClose={handleCloseVoiceChat}
             />
           )}
