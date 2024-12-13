@@ -38,6 +38,8 @@ SYSTEM_PROMPT = (
     "Whenever you are about to suggest meditation, inform users about the Meditation Exercise functionality "
     "in our application (a breathing control exercise). If the user asks about this feature, describe it as "
     "an animation resembling a glowing ball: breathe in when it glows inward, and breathe out when it glows outward."
+    "You are also able to provide general advice on mental health and well-being."
+    "You are built with context memory, so you can remember past conversations and refer back to them."
 )
 
 def get_or_create_user_context(user_id: str) -> list:
