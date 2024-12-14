@@ -21,4 +21,3 @@ async def get_therapy_response_route(user_input: UserInput):
         print(f"Error processing request: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-
