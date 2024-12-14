@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion';
 import Message from './Message';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 
 interface ChatMessage {
-  id: string;  // Add id to interface
+  id: string;
   content: string;
   isBot: boolean;
+  isNew?: boolean;  // Add this property
 }
 
 interface ChatContainerProps {
@@ -16,15 +17,15 @@ interface ChatContainerProps {
 const ChatContainer = ({ messages, isTyping }: ChatContainerProps) => {
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-  };
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages, isTyping, scrollToBottom]);
 
   return (
     <motion.div
@@ -33,16 +34,22 @@ const ChatContainer = ({ messages, isTyping }: ChatContainerProps) => {
       className="h-full overflow-y-auto px-4 pb-20 w-full"
     >
       <div className="container mx-auto">
-        {messages.map((message) => (
+        {messages.map((message, index) => (
           <Message 
             key={message.id}
             id={message.id}
             content={message.content}
             isBot={message.isBot}
+            shouldAnimate={message.isNew && message.isBot} // Only animate new bot messages
           />
         ))}
         {isTyping && (
-          <Message content="" isBot={true} isTyping={true} />
+          <Message 
+            key="typing-indicator" 
+            content="" 
+            isBot={true} 
+            isTyping={true} 
+          />
         )}
         <div ref={messagesEndRef} />
       </div>

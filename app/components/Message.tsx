@@ -10,40 +10,35 @@ interface MessageProps {
   content: string;
   isBot: boolean;
   isTyping?: boolean;
+  shouldAnimate?: boolean;
 }
 
-const Message = ({ id, content, isBot, isTyping }: MessageProps) => {
+const Message = ({ id, content, isBot, isTyping, shouldAnimate = false }: MessageProps) => {
   const [displayedText, setDisplayedText] = useState('');
-  const [isAnimating, setIsAnimating] = useState(false);
-  const animationStartedRef = useRef(false);
 
   useEffect(() => {
-    // Reset animation state when content or id changes
-    animationStartedRef.current = false;
-    
-    if (isBot && content && !isTyping) {
-      setIsAnimating(true);
-      setDisplayedText('');
-      let currentText = '';
-      const contentArray = content.split('');
-      let i = 0;
-
-      const intervalId = setInterval(() => {
-        if (i < contentArray.length) {
-          currentText += contentArray[i];
-          setDisplayedText(currentText);
-          i++;
-        } else {
-          setIsAnimating(false);
-          clearInterval(intervalId);
-        }
-      }, 5);
-
-      return () => clearInterval(intervalId);
-    } else if (!isBot) {
+    if (!shouldAnimate || !isBot || isTyping) {
       setDisplayedText(content);
+      return;
     }
-  }, [content, isBot, isTyping, id]);
+
+    setDisplayedText('');
+    let currentText = '';
+    const contentArray = content.split('');
+    let i = 0;
+
+    const intervalId = setInterval(() => {
+      if (i < contentArray.length) {
+        currentText += contentArray[i];
+        setDisplayedText(currentText);
+        i++;
+      } else {
+        clearInterval(intervalId);
+      }
+    }, 5);
+
+    return () => clearInterval(intervalId);
+  }, [content, isBot, isTyping, shouldAnimate]);
 
   return (
     <motion.div

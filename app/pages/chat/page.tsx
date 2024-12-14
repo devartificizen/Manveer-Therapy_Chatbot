@@ -22,6 +22,7 @@ interface Message {
   id: string;
   content: string;
   isBot: boolean;
+  isNew?: boolean;  // Add this property
 }
 
 export default function Chat() {
@@ -261,34 +262,74 @@ export default function Chat() {
     setIsUserSpeaking(false);
   };
 
+  useEffect(() => {
+    const loadPreviousChat = async () => {
+      if (session?.user?.id) {
+        try {
+          const response = await axios.get(`/api/chat?userId=${session.user.id}`);
+          if (response.data.success && response.data.chats.length > 0) {
+            // Load messages without isNew flag
+            setMessages(response.data.chats[0].messages.map((msg: any) => ({
+              ...msg,
+              isNew: false
+            })));
+          }
+        } catch (error) {
+          console.error("Error loading previous chat:", error);
+        }
+      }
+    };
+
+    loadPreviousChat();
+  }, [session]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userInput.trim()) return;
 
-    const userMessageId = Date.now().toString();
-    setMessages(prev => [...prev, { id: userMessageId, content: userInput, isBot: false }]);
+    const userMessage = { 
+      id: Date.now().toString(), 
+      content: userInput, 
+      isBot: false,
+      isNew: true  // Mark as new
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
     
     setIsTyping(true);
     try {
+      // Get bot response
       const response = await axios.post("/api/therapy-chat", {
         input: userInput.trim(),
         user_id: session?.user?.id || "anonymous"
       });
       
-      const botMessage = response.data.response;
-      const botMessageId = (Date.now() + 1).toString();
-      setMessages(prev => [...prev, { 
-        id: botMessageId, 
-        content: botMessage, 
-        isBot: true 
-      }]);
+      const botMessage = { 
+        id: (Date.now() + 1).toString(), 
+        content: response.data.response, 
+        isBot: true,
+        isNew: true  // Mark as new
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+
+      // Save the updated chat to database
+      if (session?.user?.id) {
+        await axios.post("/api/chat", {
+          userId: session.user.id,
+          messages: [...messages, userMessage, botMessage].map(msg => ({
+            content: msg.content,
+            isBot: msg.isBot,
+            timestamp: new Date()
+          }))
+        });
+      }
       
       if (voiceMode) {
-        speakText(botMessage);
+        speakText(botMessage.content);
       }
       
       setUserInput("");
-      setIsTyping(false);
     } catch (error) {
       console.error("Error:", error);
       setMessages(prev => [...prev, { 
@@ -296,6 +337,7 @@ export default function Chat() {
         content: "Sorry, I encountered an error. Please try again.", 
         isBot: true 
       }]);
+    } finally {
       setIsTyping(false);
     }
   };
