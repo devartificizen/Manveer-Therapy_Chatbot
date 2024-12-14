@@ -7,23 +7,24 @@ import { MdOutlineCallEnd } from "react-icons/md";
 interface VoiceWaveProps {
     isRecording: boolean;
     isSpeaking: boolean;
+    isTyping: boolean; // Add isTyping prop
     onToggleRecording: () => void;
     onStop: () => void;
     onClose: () => void;
 }
 
-const VoiceWaveAnimation = ({ isRecording, isSpeaking, onToggleRecording, onStop, onClose }: VoiceWaveProps) => {
+const VoiceWaveAnimation = ({ isRecording, isSpeaking, isTyping, onToggleRecording, onStop, onClose }: VoiceWaveProps) => {
     return (
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-[9999]"
+            className="fixed inset-0 flex items-center justify-center bg-white z-[9999]"
         >
-            <div className="relative flex flex-col items-center gap-6 bg-white p-8 rounded-lg shadow-lg w-80">
+            <div className="relative flex flex-col items-center gap-6 p-8 w-full h-full justify-center">
                 <div className="relative flex items-center justify-center">
                     {/* Listening waves - shown when recording but not speaking */}
-                    {isRecording && !isSpeaking && [...Array(3)].map((_, i) => (
+                    {isRecording && !isSpeaking && !isTyping && [...Array(3)].map((_, i) => (
                         <motion.div
                             key={`listening-${i}`}
                             className="absolute border-4 border-green-400 rounded-full"
@@ -46,7 +47,7 @@ const VoiceWaveAnimation = ({ isRecording, isSpeaking, onToggleRecording, onStop
                     ))}
 
                     {/* Speaking waves - shown when bot is speaking */}
-                    {isSpeaking && [...Array(4)].map((_, i) => (
+                    {isSpeaking && !isTyping && [...Array(4)].map((_, i) => (
                         <motion.div
                             key={`speaking-${i}`}
                             className="absolute border-4 border-blue-400 rounded-full"
@@ -68,17 +69,39 @@ const VoiceWaveAnimation = ({ isRecording, isSpeaking, onToggleRecording, onStop
                         />
                     ))}
 
+                    {/* Typing indicator - shown when bot is typing a response */}
+                    {isTyping && [...Array(3)].map((_, i) => (
+                        <motion.div
+                            key={`typing-${i}`}
+                            className="absolute bg-gray-400 rounded-full"
+                            style={{
+                                width: 20 + i * 10,
+                                height: 20 + i * 10,
+                            }}
+                            animate={{
+                                scale: [1, 1.2, 1],
+                                opacity: [0.5, 1, 0.5],
+                            }}
+                            transition={{
+                                duration: 1,
+                                repeat: Infinity,
+                                delay: i * 0.2,
+                                ease: "easeInOut",
+                            }}
+                        />
+                    ))}
+
                     {/* Central flower icon with dynamic animation */}
                     <motion.div
                         className={`relative w-32 h-32 ${
-                            isRecording && !isSpeaking 
+                            isRecording && !isSpeaking && !isTyping
                                 ? "bg-gradient-to-r from-green-500 to-green-600" 
                                 : "bg-gradient-to-r from-blue-500 to-blue-600"
                         } rounded-full shadow-lg flex items-center justify-center z-10`}
                         animate={
-                            isRecording && !isSpeaking
+                            isRecording && !isSpeaking && !isTyping
                                 ? { scale: [1, 1.05, 1] }
-                                : isSpeaking
+                                : isSpeaking && !isTyping
                                 ? { scale: [1, 1.1, 1] }
                                 : {}
                         }
@@ -87,7 +110,7 @@ const VoiceWaveAnimation = ({ isRecording, isSpeaking, onToggleRecording, onStop
                         <BsFlower1 
                             size={72} 
                             className={`${
-                                isRecording && !isSpeaking 
+                                isRecording && !isSpeaking && !isTyping
                                     ? "text-[rgb(241,255,51)] rotate-45" 
                                     : "text-[rgb(241,255,51)]"
                             }`}
@@ -104,19 +127,9 @@ const VoiceWaveAnimation = ({ isRecording, isSpeaking, onToggleRecording, onStop
                         <MdOutlineCallEnd size={40} className="text-white" />
                     </motion.button>
                 </div>
-                {/* Status text */}
-                <div className="text-gray-800 font-medium text-lg mt-4">
-                    {isRecording ? "Listening..." : "Voice chat active"}
+                <div className="text-sm text-gray-600">
+                    Voice-only mode enabled
                 </div>
-                {/* Close button */}
-                <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={onClose}
-                    className="absolute top-0 right-0 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold shadow-lg"
-                >
-                    <IoClose size={24} className="text-white" />
-                </motion.button>
             </div>
         </motion.div>
     );

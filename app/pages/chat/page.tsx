@@ -345,6 +345,7 @@ export default function Chat() {
             <VoiceChat 
               isRecording={isRecording}
               isSpeaking={isSpeaking}
+              isTyping={isTyping} // Pass isTyping state
               onToggleRecording={toggleRecording}
               onStop={handleStopVoiceChat}
               onClose={handleCloseVoiceChat}

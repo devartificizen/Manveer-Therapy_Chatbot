@@ -4,6 +4,7 @@ import VoiceWaveAnimation from "./VoiceWaveAnimation";
 interface VoiceChatProps {
   isRecording: boolean;
   isSpeaking: boolean;
+  isTyping: boolean; // Add isTyping prop
   onToggleRecording: () => void;
   onStop: () => void;
   onClose: () => void;
