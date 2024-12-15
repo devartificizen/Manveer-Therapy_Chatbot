@@ -55,7 +55,7 @@ export const authOptions: NextAuthOptions = {
                         image: profile?.image,
                     });
 
-                    // Send welcome email only for new users
+                    // Send welcome email for new users only
                     await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
                         method: "POST",
                         headers: {
@@ -64,6 +64,7 @@ export const authOptions: NextAuthOptions = {
                         body: JSON.stringify({
                             email: profile?.email,
                             name: profile?.name,
+                            type: 'welcome'
                         }),
                     });
                 } else {
@@ -73,6 +74,19 @@ export const authOptions: NextAuthOptions = {
                         { image: profile?.picture || profile?.image }
                     );
                 }
+
+                // Send reminder email for all users (both new and existing)
+                await fetch(`${process.env.NEXTAUTH_URL}/api/email`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        email: profile?.email,
+                        name: profile?.name,
+                        type: 'reminder'
+                    }),
+                });
 
                 return true;
             } catch (error) {
