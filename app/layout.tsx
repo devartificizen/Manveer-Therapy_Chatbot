@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Provider from "./context/Provider";
-
+import { MusicProvider } from "./context/MusicContext";
+import Music from "./components/Music";
 
 export const metadata: Metadata = {
   title: "Mental health chatbot",
@@ -15,9 +16,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-      >
-       <Provider>{children}</Provider>
+      <body>
+        <Provider>
+          <MusicProvider>
+            {children}
+            <Music />
+          </MusicProvider>
+        </Provider>
       </body>
     </html>
   );
