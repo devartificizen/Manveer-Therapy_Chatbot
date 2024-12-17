@@ -17,6 +17,7 @@ import ChatContainer from "../../components/ChatContainer";
 import { useSession } from "next-auth/react";
 import VoiceChat from "../../components/VoiceChat";
 import { RiVoiceAiFill } from "react-icons/ri";
+import { useMusic } from '../../context/MusicContext';
 
 interface Message {
   id: string;
@@ -39,6 +40,7 @@ export default function Chat() {
   const [showVoiceChat, setShowVoiceChat] = useState(false);
   const [isUserSpeaking, setIsUserSpeaking] = useState(false);
   const speechTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { setEmotion } = useMusic();
 
   useEffect(() => {
     if (session?.user?.name) {
@@ -156,15 +158,25 @@ export default function Chat() {
                 user_id: session?.user.id || "anonymous"
               });
               
-              const botMessage = response.data.response;
-              setMessages(prev => [...prev, { 
+              console.log("Voice response data:", response.data);
+
+              // Handle emotion for voice input
+              if (response.data.emotion) {
+                const emotion = response.data.emotion.toLowerCase();
+                console.log("Setting emotion from voice input:", emotion);
+                setEmotion(emotion);
+              }
+
+              const botMessage = { 
                 id: Date.now().toString(), 
-                content: botMessage, 
+                content: response.data.response, 
                 isBot: true 
-              }]);
+              };
+
+              setMessages(prev => [...prev, botMessage]);
               
               if (voiceMode) {
-                speakText(botMessage);
+                speakText(botMessage.content);
               }
             } catch (error) {
               console.error("Error:", error);
@@ -291,24 +303,42 @@ export default function Chat() {
       id: Date.now().toString(), 
       content: userInput, 
       isBot: false,
-      isNew: true  // Mark as new
+      isNew: true
     };
     
     setMessages(prev => [...prev, userMessage]);
     
     setIsTyping(true);
     try {
-      // Get bot response
+      console.log("Sending request with input:", userInput.trim());
       const response = await axios.post("/api/therapy-chat", {
         input: userInput.trim(),
         user_id: session?.user?.id || "anonymous"
       });
       
+      // Add detailed response logging
+      console.log("Raw API response:", response);
+      console.log("Response data:", response.data);
+      console.log("Emotion from response:", response.data.emotion);
+
+      if (response.data.emotion) {
+        const emotion = response.data.emotion.toLowerCase();
+        console.log("Setting emotion to:", emotion);
+        setEmotion(emotion);
+      } else {
+        console.warn("No emotion detected in response:", response.data);
+      }
+
+      // Ensure response.data.response is a string
+      const botResponse = typeof response.data.response === 'string' 
+        ? response.data.response 
+        : JSON.stringify(response.data.response);
+
       const botMessage = { 
         id: (Date.now() + 1).toString(), 
-        content: response.data.response, 
+        content: botResponse,
         isBot: true,
-        isNew: true  // Mark as new
+        isNew: true
       };
 
       setMessages(prev => [...prev, botMessage]);
@@ -331,7 +361,7 @@ export default function Chat() {
       
       setUserInput("");
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error with full details:", error);
       setMessages(prev => [...prev, { 
         id: Date.now().toString(), 
         content: "Sorry, I encountered an error. Please try again.", 

@@ -17,6 +17,7 @@ const Message = ({ id, content, isBot, isTyping, shouldAnimate = false }: Messag
   const [displayedText, setDisplayedText] = useState('');
 
   useEffect(() => {
+    console.log("Displayed Text: ", displayedText);
     if (!shouldAnimate || !isBot || isTyping) {
       setDisplayedText(content);
       return;
