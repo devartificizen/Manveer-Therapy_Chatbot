@@ -1,7 +1,7 @@
 import { NextAuthOptions, User as NextAuthUser, Session as NextAuthSession } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { connectToDB } from "@/utils/connectDB";
-import User from "@/models/User";
+import User from "@/app/models/User";
 import dotenv from "dotenv";
 import { signOut as nextAuthSignOut } from "next-auth/react";
 dotenv.config();

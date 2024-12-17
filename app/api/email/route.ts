@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { connectToDB } from '@/utils/connectDB';
-import User from '@/models/User';
+import User from '@/app/models/User';
 
 const positiveMessages = [
     "Remember: You are stronger than you think. Take a moment to breathe deeply.",

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectToDB } from '@/utils/connectDB';
-import User from '@/models/User';
+import User from '@/app/models/User';
 
 // Vercel cron job handler
 export const runtime = 'edge';
