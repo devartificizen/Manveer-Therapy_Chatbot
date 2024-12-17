@@ -21,18 +21,23 @@ export async function POST(request: Request) {
     {
       headers: {
         "Content-Type": "application/json"
-    }
-  }
-  );
+      }
+    });
 
-    // Ensure we have a string response
-    const responseText = typeof response.data.response === "string" 
-      ? response.data.response 
-      : JSON.stringify(response.data.response);
-
-    return NextResponse.json({ response: responseText });
+    // Log the exact structure
+    console.log("Raw FastAPI response:", response.data);
+    
+    // Correct way to access nested data
+    const responseData = response.data.response;
+    console.log("Response data object:", responseData);
+    
+    // Extract emotion and response from the correct nesting
+    return NextResponse.json({
+      response: responseData.response,
+      emotion: responseData.emotion
+    });
   } catch (error) {
-    console.error("Error fetching therapy response:", error);
+    console.error("Detailed error:", error);
     return NextResponse.json(
       { response: "Something went wrong" }, 
       { status: 500 }
