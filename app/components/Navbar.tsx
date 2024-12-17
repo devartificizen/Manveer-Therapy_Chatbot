@@ -1,25 +1,39 @@
 'use client'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { AiOutlineRobot } from 'react-icons/ai';
 import { FaUser, FaSignOutAlt, FaGoogle } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signIn, signOut, useSession } from 'next-auth/react';
 import { LuBrain } from 'react-icons/lu';
 import { PiChatCircleDotsBold } from 'react-icons/pi';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { BsFlower1 } from 'react-icons/bs';
 import { signOutUser } from '../lib/auth';
+import LoadingSpinner from './LoadingSpinner'
+
 function Navbar() {
   const [openMenu, setOpenMenu] = useState(false);
   const [showBrainTooltip, setShowBrainTooltip] = useState(false);
   const [showChatTooltip, setShowChatTooltip] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const handleNavigation = (path: string) => {
+    setIsLoading(true);
+    router.push(path);
+  };
+
+  useEffect(() => {
+    setIsLoading(false);
+  }, [pathname]);
 
   console.log("image: ", session?.user?.image)
 
   return (
     <>
+      {isLoading && <LoadingSpinner />}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}
         className="flex justify-between rounded-full w-2/3 bg-gradient-to-t from-[rgb(146,172,232)] to-[rgb(160,193,243)] ml-auto mr-auto items-center py-4 px-6 text-white relative">
         
@@ -29,7 +43,7 @@ function Navbar() {
         <div className='group relative flex items-center gap-1 bg-[rgb(160,193,243)] px-8 py-2 text-lg text-yellow-300 cursor-pointer hover:bg-blue-200 font-bold rounded-full'
              onMouseEnter={() => setShowBrainTooltip(true)}
              onMouseLeave={() => setShowBrainTooltip(false)}
-             onClick={()=>router.push('/pages/exercise')}>
+             onClick={() => handleNavigation('/pages/exercise')}>
           <LuBrain size={28} className='text-white' />
           <AnimatePresence>
             {showBrainTooltip && (
@@ -48,7 +62,7 @@ function Navbar() {
         <div className='group relative flex items-center gap-1 bg-[rgb(160,193,243)] hover:bg-blue-200 cursor-pointer px-8 py-2 text-lg text-yellow-300 font-bold rounded-full'
              onMouseEnter={() => setShowChatTooltip(true)}
              onMouseLeave={() => setShowChatTooltip(false)}
-             onClick={()=> router.push('pages/chat')}>
+             onClick={() => handleNavigation('pages/chat')}>
           <PiChatCircleDotsBold size={28} className='text-white' />
           <AnimatePresence>
             {showChatTooltip && (
