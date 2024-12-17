@@ -6,10 +6,13 @@ import { FaPlay, FaPause } from 'react-icons/fa';
 import { useMusic } from '../context/MusicContext';
 
 export default function Music() {
-  const [isOpen, setIsOpen] = useState(false);
-  const { isPlaying, currentEmotion, togglePlay, setEmotion, volume, setVolume } = useMusic();
+  const { isPlaying, currentEmotion, togglePlay, setEmotion, volume, setVolume, isOpen, setIsOpen } = useMusic();
 
-  const emotions = ['Angry', 'Sad', 'Frustrated', 'Anxious'];
+  // Update emotions array to be lowercase
+  const emotions = ['angry', 'sad', 'frustrated', 'anxious'];
+
+  // Helper function to capitalize first letter for display
+  const capitalizeFirstLetter = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
 
   return (
     <motion.div
@@ -40,7 +43,7 @@ export default function Music() {
                   : 'bg-gray-100 hover:bg-gray-200'
               }`}
             >
-              {emotion}
+              {capitalizeFirstLetter(emotion)}
             </button>
           ))}
         </div>
